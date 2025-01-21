@@ -27,7 +27,6 @@ class Game:
         self.clicker.update()
 
     def draw(self):
-        self.screen.fill((245, 245, 245))
         self.clicker.draw(self.screen)
         pygame.display.flip()
 
