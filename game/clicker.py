@@ -4,6 +4,7 @@ from game.shop import Shop
 from pathlib import Path
 from PIL import Image
 import io
+from game.match3 import Match3Game
 
 # основной класс игры, управляет всей механикой кликера
 class Clicker:
@@ -244,9 +245,22 @@ class Clicker:
                     back_btn = pygame.Rect(50, 650, 400, 60)
                     
                     if match_3_btn.collidepoint(event.pos):
-                        print("Выбрана игра: Кот-в-ряд")
+                        def return_callback(data=None):
+                            if data and "coins" in data:
+                                self.coins = data["coins"]
+                            self.state = "game"
+                        
+                        game = Match3Game(return_callback)
+                        game.run()
                     elif crossy_btn.collidepoint(event.pos):
-                        print("Выбрана игра: Котик переходит дорогу")
+                        def return_callback(data=None):
+                            if data and "coins" in data:
+                                self.coins = data["coins"]
+                            self.state = "game"
+                        
+                        from game.road import RoadGame
+                        game = RoadGame(self.handle_minigame_return)
+                        game.run()
                     elif back_btn.collidepoint(event.pos):
                         self.in_minigames = False
                 else:
@@ -436,6 +450,10 @@ class Clicker:
         if self.show_confirm:
             self.draw_confirm_dialog(screen)
 
+        # Отрисовка сетки если включена
+        if self.db.get_grid_state():
+            self.draw_grid(screen)
+
     def handle_console_command(self, command):
         if command == "MOTHERLODE":
             self.clicks += 50000
@@ -472,6 +490,10 @@ class Clicker:
             self.coins = 0
             self.click_multiplier = 1
             self.db.save_all_locked()
+        elif command.upper() == "GRID":
+            self.db.toggle_grid()
+            return True
+        return False
 
     def reset_progress(self):
         import os
@@ -533,3 +555,33 @@ class Clicker:
                                "Покупай улучшения в магазине",
                                "Открывай новых котиков и фоны"]
         self.confirm_action = lambda: None  # просто закрыть диалог
+
+    def return_from_minigame(self):
+        # Восстанавливаем окно и состояние основной игры
+        self.screen = pygame.display.set_mode((500, 800))
+        pygame.display.set_caption("Шуфлядка")
+        self.in_minigames = False
+
+    def draw_grid(self, screen):
+        grid = pygame.Surface((500, 800), pygame.SRCALPHA)
+        for x in range(0, 500, 50):
+            pygame.draw.line(grid, (0, 255, 0, 64), (x, 0), (x, 800))
+        for y in range(0, 800, 50):
+            pygame.draw.line(grid, (0, 255, 0, 64), (0, y), (500, y))
+        screen.blit(grid, (0, 0))
+
+    def handle_minigame_return(self, data=None):
+        if data and "coins" in data:
+            # Обновляем отображение монет после возврата из мини-игры
+            self.coins = data["coins"]
+            # Сохраняем новое состояние
+            self.db.save_game_state(
+                self.clicks, 
+                self.coins, 
+                self.click_multiplier
+            )
+
+    def update_coin_text(self):
+        # Этот метод не нужен, так как обновление текста происходит 
+        # автоматически в методе draw
+        pass

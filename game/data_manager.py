@@ -14,6 +14,8 @@ class DataManager:
         self.data_path.mkdir(exist_ok=True)
         
         self.init_data()
+        self.show_grid = False
+        self.console_enabled = True
     
     def init_data(self):
         if not self.player_file.exists():
@@ -22,7 +24,11 @@ class DataManager:
                 "coins": 0,
                 "multiplier": 1,
                 "active_skin": "assets/sprites/cats/cat_gray.png",
-                "active_background": "assets/sprites/backgrounds/bg_village.jpeg"
+                "active_background": "assets/sprites/backgrounds/bg_village.jpeg",
+                "debug": {
+                    "grid_enabled": False,
+                    "console_enabled": True
+                }
             }
             self.save_json(self.player_file, player_data)
         
@@ -219,6 +225,10 @@ class DataManager:
     
     def load_game_state(self):
         data = self.load_json(self.player_file)
+        # Загружаем состояния отладки
+        debug_data = data.get("debug", {"grid_enabled": False, "console_enabled": True})
+        self.show_grid = debug_data["grid_enabled"]
+        self.console_enabled = debug_data["console_enabled"]
         return (
             data["clicks"],
             data["coins"],
@@ -228,14 +238,17 @@ class DataManager:
         )
     
     def save_game_state(self, clicks, coins, multiplier, active_skin=None, active_background=None):
-        data = self.load_json(self.player_file)
-        data.update({
+        data = {
             "clicks": clicks,
             "coins": coins,
             "multiplier": multiplier,
-            "active_skin": active_skin if active_skin else data["active_skin"],
-            "active_background": active_background if active_background else data["active_background"]
-        })
+            "active_skin": active_skin or self.load_game_state()[3],
+            "active_background": active_background or self.load_game_state()[4],
+            "debug": {
+                "grid_enabled": self.show_grid,
+                "console_enabled": self.console_enabled
+            }
+        }
         self.save_json(self.player_file, data)
     
     def load_upgrades(self):
@@ -393,4 +406,39 @@ class DataManager:
                 music["purchased"] = purchased
                 music["active"] = active
         
-        self.save_json(Path("game/data/music.json"), data) 
+        self.save_json(Path("game/data/music.json"), data)
+
+    def load_match3_progress(self):
+        match3_file = self.data_path / "match3_progress.json"
+        if not match3_file.exists():
+            return None
+        with open(match3_file, 'r') as f:
+            data = json.load(f)
+            return data.get("unlocked_levels", 1)
+
+    def save_match3_progress(self, unlocked_levels):
+        match3_file = self.data_path / "match3_progress.json"
+        data = {"unlocked_levels": unlocked_levels}
+        with open(match3_file, 'w') as f:
+            json.dump(data, f)
+
+    def reset_progress(self):
+        # Удаляем все файлы сохранений
+        for file in self.data_path.glob("*.json"):
+            file.unlink()
+        # Инициализируем данные заново
+        self.init_data() 
+
+    def toggle_grid(self):
+        self.show_grid = not self.show_grid
+        # Сохраняем состояние в player.json
+        data = self.load_json(self.player_file)
+        data["debug"]["grid_enabled"] = self.show_grid
+        self.save_json(self.player_file, data)
+        return self.show_grid
+
+    def get_grid_state(self):
+        # Всегда читаем актуальное состояние из файла
+        data = self.load_json(self.player_file)
+        self.show_grid = data["debug"]["grid_enabled"]
+        return self.show_grid 

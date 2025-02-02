@@ -1,6 +1,21 @@
 import pygame
 import sys
 from game.clicker import Clicker
+from game.data_manager import DataManager
+
+class GridManager:
+    def __init__(self):
+        self.db = DataManager()
+    
+    def draw_grid(self, screen):
+        if self.db.get_grid_state():
+            grid = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+            width, height = screen.get_size()
+            for x in range(0, width, 50):
+                pygame.draw.line(grid, (0, 255, 0, 64), (x, 0), (x, height))
+            for y in range(0, height, 50):
+                pygame.draw.line(grid, (0, 255, 0, 64), (0, y), (width, y))
+            screen.blit(grid, (0, 0))
 
 class Game:
     def __init__(self):
@@ -17,6 +32,7 @@ class Game:
         
         # инициализация основного класса
         self.clicker = Clicker()
+        self.grid_manager = GridManager()
     
     def handle_events(self):
         for event in pygame.event.get():
@@ -31,6 +47,8 @@ class Game:
 
     def draw(self):
         self.clicker.draw(self.screen)
+        # Отрисовка сетки поверх всего
+        self.grid_manager.draw_grid(self.screen)
         pygame.display.flip()
 
     def run(self):
