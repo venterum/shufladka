@@ -580,8 +580,3 @@ class Clicker:
                 self.coins, 
                 self.click_multiplier
             )
-
-    def update_coin_text(self):
-        # Этот метод не нужен, так как обновление текста происходит 
-        # автоматически в методе draw
-        pass
