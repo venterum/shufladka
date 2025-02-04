@@ -32,7 +32,7 @@ pip install -r requirements.txt
 3. Запустите игру:
 
 ```bash
-python main.py
+python run.py
 ```
 
 ## 🎨 Графика
